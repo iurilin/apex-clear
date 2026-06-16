@@ -5,6 +5,8 @@ import com.apex.clear_engine.domain.model.TransactionLedger;
 import com.apex.clear_engine.domain.model.TransactionType;
 import com.apex.clear_engine.domain.repository.AccountRepository;
 import com.apex.clear_engine.domain.repository.TransactionLedgerRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,10 @@ public class TransferService {
         this.ledgerRepository = ledgerRepository;
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "accounts", key = "#sourceAccountNumber"),
+            @CacheEvict(value = "accounts", key = "#destinationAccountNumber")
+    })
     @Transactional
     public UUID executeTransfer(String sourceAccountNumber, String destinationAccountNumber, BigDecimal amount) {
 
