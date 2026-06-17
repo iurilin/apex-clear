@@ -7,6 +7,7 @@ import com.apex.clear_engine.domain.model.TransactionLedger;
 import com.apex.clear_engine.domain.model.TransactionType;
 import com.apex.clear_engine.domain.repository.AccountRepository;
 import com.apex.clear_engine.domain.repository.TransactionLedgerRepository;
+import com.apex.clear_engine.infrastructure.configuration.RabbitMQConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
@@ -20,10 +21,12 @@ public class TransferService {
 
     private final AccountRepository accountRepository;
     private final TransactionLedgerRepository ledgerRepository;
+    private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
 
-    public TransferService(AccountRepository accountRepository, TransactionLedgerRepository ledgerRepository) {
+    public TransferService(AccountRepository accountRepository, TransactionLedgerRepository ledgerRepository, org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate) {
         this.accountRepository = accountRepository;
         this.ledgerRepository = ledgerRepository;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     @Caching(evict = {
@@ -81,6 +84,20 @@ public class TransferService {
 
         ledgerRepository.save(debitEntry);
         ledgerRepository.save(creditEntry);
+
+        String mensagemTexto = String.format(
+                "id:%s,origem:%s,destino:%s,valor:%s",
+                correlationId,
+                sourceAccount.getAccountNumber(),
+                destinationAccount.getAccountNumber(),
+                amount.toString()
+        );
+
+                rabbitTemplate.convertAndSend(
+                RabbitMQConfig.EXCHANGE_NAME,
+                RabbitMQConfig.ROUTING_KEY,
+                mensagemTexto
+        );
 
         return correlationId;
     }
