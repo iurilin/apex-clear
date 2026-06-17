@@ -70,8 +70,8 @@ public class TransferController {
 
         } catch (Exception e) {
             idempotencyService.deleteKey(idempotencyKey);
-            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
-                    .body(Map.of("error", e.getMessage()));
+
+            throw e;
         }
     }
 

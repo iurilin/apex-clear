@@ -1,5 +1,7 @@
 package com.apex.clear_engine.application.service;
 
+import com.apex.clear_engine.domain.exception.AccountNotFoundException;
+import com.apex.clear_engine.domain.exception.InsufficientBalanceException;
 import com.apex.clear_engine.domain.model.Account;
 import com.apex.clear_engine.domain.model.TransactionLedger;
 import com.apex.clear_engine.domain.model.TransactionType;
@@ -31,6 +33,16 @@ public class TransferService {
     @Transactional
     public UUID executeTransfer(String sourceAccountNumber, String destinationAccountNumber, BigDecimal amount) {
 
+        Account sourceAccount = accountRepository.findByAccountNumberForUpdate(sourceAccountNumber)
+                .orElseThrow(() -> new AccountNotFoundException(sourceAccountNumber));
+
+        Account destinationAccount = accountRepository.findByAccountNumberForUpdate(destinationAccountNumber)
+                .orElseThrow(() -> new AccountNotFoundException(destinationAccountNumber));
+
+        if (sourceAccount.getBalance().compareTo(amount) < 0) {
+            throw new InsufficientBalanceException(sourceAccountNumber, amount, sourceAccount.getBalance());
+        }
+
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("O valor da transferência deve ser maior que zero.");
         }
@@ -39,15 +51,9 @@ public class TransferService {
             throw new IllegalArgumentException("A conta de origem não pode ser igual à conta de destino.");
         }
 
-        Account sourceAccount = accountRepository.findByAccountNumberForUpdate(sourceAccountNumber)
-                .orElseThrow(() -> new IllegalArgumentException("Conta de origem não encontrada: " + sourceAccountNumber));
-
         if (sourceAccount.getBalance().compareTo(amount) < 0) {
             throw new IllegalStateException("Saldo insuficiente para realizar a transação.");
         }
-
-        Account destinationAccount = accountRepository.findByAccountNumberForUpdate(destinationAccountNumber)
-                .orElseThrow(() -> new IllegalArgumentException("Conta de destino não encontrada: " + destinationAccountNumber));
 
         sourceAccount.setBalance(sourceAccount.getBalance().subtract(amount));
         destinationAccount.setBalance(destinationAccount.getBalance().add(amount));
