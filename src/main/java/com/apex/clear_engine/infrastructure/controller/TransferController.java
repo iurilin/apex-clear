@@ -76,7 +76,7 @@ public class TransferController {
     }
 
     @GetMapping("/accounts/{accountNumber}/balance")
-    public ResponseEntity<?> getBalance(@PathVariable String accountNumber) { // <-- Trocado para <?>
+    public ResponseEntity<?> getBalance(@PathVariable String accountNumber) {
         return accountRepository.findByAccountNumber(accountNumber)
                 .map(account -> ResponseEntity.ok(Map.of(
                         "accountNumber", account.getAccountNumber(),
